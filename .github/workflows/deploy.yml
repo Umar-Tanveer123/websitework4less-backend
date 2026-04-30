@@ -34,6 +34,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "dist,package.json,package-lock.json,prisma,ecosystem.config.js"
           target: "/var/www/websitework4less"
+          rm: true
 
       - name: Post-deployment on VPS
         uses: appleboy/ssh-action@master
@@ -55,6 +56,9 @@ jobs:
             
             # Install production dependencies
             npm install --omit=dev
+            
+            # Generate Prisma Client for the VPS environment
+            npx prisma generate
             
             # Update DB schema
             npx prisma db push
