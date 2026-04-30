@@ -274,7 +274,7 @@ app.post('/api/upload', authenticateToken, upload.single('image'), (req: any, re
   if (!req.file) {
     return res.status(400).json({ error: 'No image uploaded' });
   }
-  const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+  const imageUrl = `/uploads/${req.file.filename}`;
   res.json({ url: imageUrl });
 });
 
