@@ -193,6 +193,82 @@ app.post('/api/auth/register-admin', authenticateToken, async (req: any, res: an
   res.json({ success: true, user: { id: user.id, email: user.email, name: user.name } });
 });
 
+// --- NEW: OTP-Based Self Registration ---
+app.post('/api/auth/register-otp', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) return res.status(400).json({ error: 'Email already registered' });
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 600000); // 10 minutes
+
+    // Store OTP in a temporary "Pending" state (We can use a dedicated table or reuse User with a flag)
+    // For simplicity, we'll use a hidden field in the User table but marked as "inactive" or just store in memory/cache.
+    // Here we'll create a "shadow" user or update the existing one if it was incomplete.
+    
+    // Better: We'll just send the OTP and verify it in the next step along with the registration data.
+    // But we need to store the OTP somewhere. Let's use a simple global Map for now or the DB.
+    // Let's use the User table with a specific flag if needed, or just send it.
+    
+    // To keep it clean, let's just send the OTP. The frontend will send it back with the full data.
+    // We'll sign the OTP into a temporary JWT so the server can verify it later without a DB session.
+    const registrationToken = jwt.sign({ email, otp }, JWT_SECRET, { expiresIn: '10m' });
+
+    await transporter.sendMail({
+      from: `"Website Work 4 Less Admin" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: "Your Registration OTP",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 20px; background-color: #ffffff;">
+          <h2 style="color: #333; text-align: center;">Welcome to the Team!</h2>
+          <p style="color: #666; text-align: center;">Use the code below to complete your Admin registration.</p>
+          <div style="margin: 30px 0; text-align: center;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #5551FF; background-color: #f0f0ff; padding: 15px 30px; border-radius: 10px;">${otp}</span>
+          </div>
+          <p style="color: #999; font-size: 12px; text-align: center;">This code will expire in 10 minutes.</p>
+        </div>
+      `,
+    });
+
+    res.json({ success: true, registrationToken });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send registration OTP' });
+  }
+});
+
+app.post('/api/auth/register-verify', async (req, res) => {
+  const { email, password, name, otp, registrationToken } = req.body;
+  
+  try {
+    // Verify the temporary token
+    const decoded: any = jwt.verify(registrationToken, JWT_SECRET);
+    
+    if (decoded.email !== email || decoded.otp !== otp) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) return res.status(400).json({ error: 'Email already registered' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+      }
+    });
+
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ success: true, token, user: { id: user.id, email: user.email, name: user.name } });
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid or expired registration session' });
+  }
+});
+
+
 // --- UPLOAD ROUTE ---
 app.post('/api/upload', authenticateToken, upload.single('image'), (req: any, res: any) => {
   if (!req.file) {
