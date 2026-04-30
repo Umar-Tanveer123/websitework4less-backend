@@ -1,0 +1,19 @@
+# Dependencies
+node_modules
+dist
+
+# Environment variables (Crucial for security!)
+.env
+
+# Database
+dev.db
+dev.db-journal
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -1,0 +1,70 @@
+name: Deploy Backend to VPS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Build Project
+        working-directory: backend
+        run: npm run build
+
+      - name: Deploy to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend/dist,backend/package.json,backend/package-lock.json,backend/prisma,backend/ecosystem.config.js"
+          target: "/var/www/websitework4less"
+          strip_components: 1
+
+      - name: Post-deployment on VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/websitework4less
+            
+            # Generate .env automatically
+            echo "PORT=5001" > .env
+            echo "DATABASE_URL=\"${{ secrets.DATABASE_URL }}\"" >> .env
+            echo "JWT_SECRET=\"${{ secrets.JWT_SECRET }}\"" >> .env
+            echo "SMTP_HOST=\"smtp.gmail.com\"" >> .env
+            echo "SMTP_PORT=587" >> .env
+            echo "SMTP_USER=\"${{ secrets.SMTP_USER }}\"" >> .env
+            echo "SMTP_PASS=\"${{ secrets.SMTP_PASS }}\"" >> .env
+            
+            # Install production dependencies
+            npm install --omit=dev
+            
+            # Update DB schema
+            npx prisma db push
+            
+            # Restart with PM2
+            pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
+            pm2 save
