@@ -32,7 +32,7 @@ jobs:
           host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "dist,package.json,package-lock.json,prisma,ecosystem.config.js"
+          source: "src,dist,package.json,package-lock.json,prisma,ecosystem.config.js"
           target: "/var/www/websitework4less"
           rm: true
 
