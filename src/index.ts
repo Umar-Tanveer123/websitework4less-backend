@@ -17,6 +17,15 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// --- HEALTH CHECK ---
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'UP',
+    message: 'Backend is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 import fs from 'fs';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
