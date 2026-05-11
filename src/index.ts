@@ -333,6 +333,37 @@ app.put('/api/posts/:id', authenticateToken, async (req: any, res: any) => {
   }
 });
 
+app.post('/api/contact', async (req, res) => {
+  const { name, email, company, phone, service, message } = req.body;
+
+  try {
+    await transporter.sendMail({
+      from: `"Website Work 4 Less Contact" <${process.env.SMTP_USER}>`,
+      to: 'info@websitework4less.com', // Recipient email
+      subject: `New Contact Form Submission from ${name}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 20px; background-color: #ffffff;">
+          <h2 style="color: #333; text-align: center;">New Contact Request</h2>
+          <p style="color: #666;"><strong>Name:</strong> ${name}</p>
+          <p style="color: #666;"><strong>Email:</strong> ${email}</p>
+          <p style="color: #666;"><strong>Company:</strong> ${company || 'N/A'}</p>
+          <p style="color: #666;"><strong>Phone:</strong> ${phone || 'N/A'}</p>
+          <p style="color: #666;"><strong>Service:</strong> ${service || 'N/A'}</p>
+          <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 10px;">
+            <p style="color: #333;"><strong>Message:</strong></p>
+            <p style="color: #555;">${message}</p>
+          </div>
+        </div>
+      `,
+    });
+
+    res.json({ success: true, message: 'Message sent successfully' });
+  } catch (err) {
+    console.error('Contact form error:', err);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
 app.delete('/api/posts/:id', authenticateToken, async (req: any, res: any) => {
   try {
     await prisma.post.delete({
