@@ -339,7 +339,7 @@ app.post('/api/contact', async (req, res) => {
   try {
     await transporter.sendMail({
       from: `"Website Work 4 Less Contact" <${process.env.SMTP_USER}>`,
-      to: 'umertanver0331@gmail.com', // Recipient email
+      to: 'info@websitework4less.com', // Recipient email
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 20px; background-color: #ffffff;">
