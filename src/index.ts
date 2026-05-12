@@ -60,11 +60,11 @@ const upload = multer({ storage });
 // --- AUTH ROUTES ---
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  
+
   // For local testing, we'll auto-create the admin if they don't exist
   // and they use the specific dev email.
   let user = await prisma.user.findUnique({ where: { email } });
-  
+
   if (!user && email === 'umertanver0331@gmail.com') {
     const hashedPassword = await bcrypt.hash(password, 10);
     user = await prisma.user.create({
@@ -103,7 +103,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       where: { email },
       data: { resetToken: otp, resetTokenExpiry }
     });
-    
+
     await transporter.sendMail({
       from: `"Website Work 4 Less Admin" <${process.env.SMTP_USER}>`,
       to: email,
@@ -138,10 +138,10 @@ app.post('/api/auth/reset-password', async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { email },
-      data: { 
-        password: hashedPassword, 
-        resetToken: null, 
-        resetTokenExpiry: null 
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null
       }
     });
 
@@ -155,7 +155,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 const authenticateToken = (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  
+
   if (token == null) return res.status(401).json({ error: 'No token provided' });
 
   jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
@@ -216,11 +216,11 @@ app.post('/api/auth/register-otp', async (req, res) => {
     // Store OTP in a temporary "Pending" state (We can use a dedicated table or reuse User with a flag)
     // For simplicity, we'll use a hidden field in the User table but marked as "inactive" or just store in memory/cache.
     // Here we'll create a "shadow" user or update the existing one if it was incomplete.
-    
+
     // Better: We'll just send the OTP and verify it in the next step along with the registration data.
     // But we need to store the OTP somewhere. Let's use a simple global Map for now or the DB.
     // Let's use the User table with a specific flag if needed, or just send it.
-    
+
     // To keep it clean, let's just send the OTP. The frontend will send it back with the full data.
     // We'll sign the OTP into a temporary JWT so the server can verify it later without a DB session.
     const registrationToken = jwt.sign({ email, otp }, JWT_SECRET, { expiresIn: '10m' });
@@ -249,11 +249,11 @@ app.post('/api/auth/register-otp', async (req, res) => {
 
 app.post('/api/auth/register-verify', async (req, res) => {
   const { email, password, name, otp, registrationToken } = req.body;
-  
+
   try {
     // Verify the temporary token
     const decoded: any = jwt.verify(registrationToken, JWT_SECRET);
-    
+
     if (decoded.email !== email || decoded.otp !== otp) {
       return res.status(400).json({ error: 'Invalid or expired OTP' });
     }
@@ -321,7 +321,7 @@ app.post('/api/posts', authenticateToken, async (req: any, res: any) => {
 
 app.put('/api/posts/:id', authenticateToken, async (req: any, res: any) => {
   const { title, slug, content, excerpt, thumbnail, published } = req.body;
-  
+
   try {
     const post = await prisma.post.update({
       where: { id: req.params.id },
@@ -339,7 +339,7 @@ app.post('/api/contact', async (req, res) => {
   try {
     await transporter.sendMail({
       from: `"Website Work 4 Less Contact" <${process.env.SMTP_USER}>`,
-      to: 'info@websitework4less.com', // Recipient email
+      to: 'umertanver0331@gmail.com', // Recipient email
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 20px; background-color: #ffffff;">
