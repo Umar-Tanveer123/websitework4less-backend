@@ -202,6 +202,39 @@ app.post('/api/auth/register-admin', authenticateToken, async (req: any, res: an
   res.json({ success: true, user: { id: user.id, email: user.email, name: user.name } });
 });
 
+app.get('/api/auth/users', authenticateToken, async (req: any, res: any) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.delete('/api/auth/users/:id', authenticateToken, async (req: any, res: any) => {
+  try {
+    const userId = req.params.id;
+    const currentAdminId = req.user.userId;
+
+    if (userId === currentAdminId) {
+      return res.status(400).json({ error: 'You cannot delete yourself' });
+    }
+
+    await prisma.user.delete({ where: { id: userId } });
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
 // --- NEW: OTP-Based Self Registration ---
 app.post('/api/auth/register-otp', async (req, res) => {
   const { email } = req.body;
